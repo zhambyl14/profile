@@ -24,7 +24,15 @@ import {
   Sun,
   Workflow,
 } from "lucide-react";
+import Image, { type StaticImageData } from "next/image";
 import { useApp } from "./providers";
+import tasuLogo from "@/assets/logos/tasu.png";
+import qoimaLogo from "@/assets/logos/qoima.png";
+import imagLogo from "@/assets/logos/imag.png";
+import damuLogo from "@/assets/logos/damu.png";
+import nurLogo from "@/assets/logos/nur.svg";
+import tokLogo from "@/assets/logos/tok.png";
+import sozqorLogo from "@/assets/logos/sozqor.png";
 import { CONTACT, LANGS, NAME, type Lang } from "@/lib/i18n";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -293,14 +301,14 @@ function Services() {
 }
 
 /* ---------------- Work ---------------- */
-const VISUALS: Record<string, { from: string; to: string; glyph: React.ReactNode }> = {
-  tasu: { from: "#3b5bff", to: "#7c8cff", glyph: <TruckGlyph /> },
-  qoima: { from: "#0f9f6e", to: "#7be3b5", glyph: <BarsGlyph /> },
-  imag: { from: "#ff7a59", to: "#ffc37a", glyph: <ReceiptGlyph /> },
-  damu: { from: "#8b5cf6", to: "#c4b5fd", glyph: <CapGlyph /> },
-  nur: { from: "#c2410c", to: "#fdba74", glyph: <BookGlyph /> },
-  tok: { from: "#e11d48", to: "#fb923c", glyph: <PinGlyph /> },
-  sozqor: { from: "#0891b2", to: "#67e8f9", glyph: <ChatGlyph /> },
+const VISUALS: Record<string, { from: string; to: string; logo: StaticImageData; tile?: string }> = {
+  tasu: { from: "#1a1a1a", to: "#f5c400", logo: tasuLogo },
+  qoima: { from: "#0b4d33", to: "#2fa36b", logo: qoimaLogo },
+  imag: { from: "#1146d6", to: "#5f8dff", logo: imagLogo },
+  damu: { from: "#0f2347", to: "#b58a3c", logo: damuLogo, tile: "#ffffff" },
+  nur: { from: "#0b1830", to: "#7d1a35", logo: nurLogo },
+  tok: { from: "#c2410c", to: "#ff8a1f", logo: tokLogo },
+  sozqor: { from: "#5b5bd6", to: "#a35bd0", logo: sozqorLogo },
 };
 
 function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"]["projects"][number]; i: number; big?: boolean }) {
@@ -335,7 +343,11 @@ function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"][
         <div className={`relative overflow-hidden ${big ? "h-64 sm:h-72" : "h-48"}`} style={{ background: `linear-gradient(135deg, ${v.from}, ${v.to})` }}>
           <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:18px_18px]" />
           <div className="absolute -right-10 -bottom-10 size-56 rounded-full bg-white/15 blur-2xl transition-transform duration-700 group-hover:scale-125" />
-          <div className="absolute inset-0 grid place-items-center text-white transition-transform duration-700 group-hover:scale-110">{v.glyph}</div>
+          <div className="absolute inset-0 grid place-items-center transition-transform duration-700 group-hover:scale-110 group-hover:-rotate-3">
+            <div className={`overflow-hidden rounded-[28%] shadow-[0_24px_50px_-12px_rgba(0,0,0,.55)] ring-1 ring-white/20 ${big ? "size-32 sm:size-36" : "size-24"}`} style={{ background: v.tile }}>
+              <Image src={v.logo} alt={`${p.name} logo`} className="size-full object-cover" sizes="144px" />
+            </div>
+          </div>
           {p.stores && (
             <div className="absolute top-4 left-4 flex gap-1.5">
               {["App Store", "Google Play"].map((s) => (
@@ -572,70 +584,6 @@ export default function Site() {
         <Contact />
       </main>
     </div>
-  );
-}
-
-/* ---------------- Glyphs ---------------- */
-function G({ children }: { children: React.ReactNode }) {
-  return (
-    <svg width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_12px_24px_rgba(0,0,0,.25)]">
-      {children}
-    </svg>
-  );
-}
-function TruckGlyph() {
-  return (
-    <G>
-      <path d="M12 34h56v42H12zM68 48h22l16 16v12H68z" />
-      <circle cx="32" cy="82" r="9" fill="currentColor" />
-      <circle cx="88" cy="82" r="9" fill="currentColor" />
-    </G>
-  );
-}
-function BarsGlyph() {
-  return (
-    <G>
-      <path d="M18 100V60M44 100V40M70 100V52M96 100V24" strokeWidth="12" />
-    </G>
-  );
-}
-function ReceiptGlyph() {
-  return (
-    <G>
-      <path d="M30 14h60v92l-10-7-10 7-10-7-10 7-10-7-10 7z" />
-      <path d="M44 40h32M44 56h32M44 72h18" />
-    </G>
-  );
-}
-function CapGlyph() {
-  return (
-    <G>
-      <path d="M8 46l52-24 52 24-52 24z" />
-      <path d="M30 58v24c0 8 14 14 30 14s30-6 30-14V58M112 46v28" />
-    </G>
-  );
-}
-function BookGlyph() {
-  return (
-    <G>
-      <path d="M60 30c-12-10-30-12-46-8v70c16-4 34-2 46 8 12-10 30-12 46-8V22c-16-4-34-2-46 8zM60 30v70" />
-    </G>
-  );
-}
-function PinGlyph() {
-  return (
-    <G>
-      <path d="M60 108s34-32 34-58a34 34 0 10-68 0c0 26 34 58 34 58z" />
-      <circle cx="60" cy="50" r="12" fill="currentColor" />
-    </G>
-  );
-}
-function ChatGlyph() {
-  return (
-    <G>
-      <path d="M16 24h64v44H44L28 82V68H16z" />
-      <path d="M80 44h24v40H92v12L78 84H52v-8" />
-    </G>
   );
 }
 
