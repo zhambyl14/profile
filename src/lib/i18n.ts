@@ -239,4 +239,13 @@ export const dict: Record<Lang, Dict> = {
 };
 
 export const NAME: Record<Lang, string> = { kk: "Мағжан Жамбыл", ru: "Магжан Жамбыл", en: "Magzhan Zhambyl" };
-export const CONTACT = { phone: "+7 747 400 53 47", phoneHref: "tel:+77474005347", email: "aergvae@bk.ru", github: "github.com/zhambyl14" };
+export const CONTACT = {
+  phone: "+7 708 005 14 16",
+  phoneHref: "tel:+77080051416",
+  whatsapp: "+7 747 400 53 47",
+  whatsappHref: "https://wa.me/77474005347",
+  telegram: "@zhambyl_magzhan",
+  telegramHref: "https://t.me/zhambyl_magzhan",
+  email: "aergvae@bk.ru",
+  github: "github.com/zhambyl14",
+};

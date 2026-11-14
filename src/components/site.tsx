@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  AnimatePresence,
   motion,
   useInView,
   useMotionTemplate,
@@ -18,6 +19,9 @@ import {
   Globe,
   Mail,
   MapPin,
+  MessageCircle,
+  Send,
+  X,
   Moon,
   Phone,
   Smartphone,
@@ -34,6 +38,7 @@ import nurLogo from "@/assets/logos/nur.svg";
 import tokLogo from "@/assets/logos/tok.png";
 import sozqorLogo from "@/assets/logos/sozqor.png";
 import { CONTACT, LANGS, NAME, type Lang } from "@/lib/i18n";
+import { DETAILS, LINKS, UI, type ProjectLink } from "@/lib/projects";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -311,8 +316,20 @@ const VISUALS: Record<string, { from: string; to: string; logo: StaticImageData;
   sozqor: { from: "#5b5bd6", to: "#a35bd0", logo: sozqorLogo },
 };
 
-function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"]["projects"][number]; i: number; big?: boolean }) {
+type ProjectT = ReturnType<typeof useApp>["t"]["work"]["projects"][number];
+
+const STORE_LABEL = { appstore: "App Store", play: "Google Play" } as const;
+
+function storeBadges(p: ProjectT): { kind: "appstore" | "play"; href?: string }[] {
+  if (!p.stores) return [];
+  const links = LINKS[p.id] ?? [];
+  return (["appstore", "play"] as const).map((kind) => ({ kind, href: links.find((l) => l.kind === kind)?.href }));
+}
+
+function ProjectCard({ p, i, big, onOpen }: { p: ProjectT; i: number; big?: boolean; onOpen: (id: string) => void }) {
+  const { lang } = useApp();
   const v = VISUALS[p.id];
+  const web = (LINKS[p.id] ?? []).find((l) => l.kind === "web");
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 150, damping: 18 });
@@ -336,8 +353,18 @@ function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"][
           rx.set(0);
           ry.set(0);
         }}
+        onClick={() => onOpen(p.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen(p.id);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`${p.name}: ${UI[lang].more}`}
         style={{ rotateX: srx, rotateY: sry, transformPerspective: 1200 }}
-        className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-line bg-card"
+        className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-line bg-card outline-none transition-colors hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent"
       >
         <motion.div className="pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: shine }} />
         <div className={`relative overflow-hidden ${big ? "h-64 sm:h-72" : "h-48"}`} style={{ background: `linear-gradient(135deg, ${v.from}, ${v.to})` }}>
@@ -348,15 +375,37 @@ function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"][
               <Image src={v.logo} alt={`${p.name} logo`} className="size-full object-cover" sizes="144px" />
             </div>
           </div>
-          {p.stores && (
-            <div className="absolute top-4 left-4 flex gap-1.5">
-              {["App Store", "Google Play"].map((s) => (
-                <span key={s} className="rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
-                  {s}
+          <div className="absolute top-4 left-4 z-20 flex gap-1.5">
+            {storeBadges(p).map((b) =>
+              b.href ? (
+                <a
+                  key={b.kind}
+                  href={b.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/70"
+                >
+                  {STORE_LABEL[b.kind]} <ArrowUpRight size={11} />
+                </a>
+              ) : (
+                <span key={b.kind} className="rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-semibold text-white/80 backdrop-blur-md">
+                  {STORE_LABEL[b.kind]}
                 </span>
-              ))}
-            </div>
-          )}
+              ),
+            )}
+            {web && (
+              <a
+                href={web.href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/70"
+              >
+                <Globe size={11} /> {new URL(web.href).hostname} <ArrowUpRight size={11} />
+              </a>
+            )}
+          </div>
         </div>
         <div className="flex flex-1 flex-col p-6">
           <div className="flex items-start justify-between gap-3">
@@ -374,10 +423,13 @@ function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"][
               </span>
             ))}
           </div>
-          <div className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-6 font-mono text-xs text-fg-3">
-            {p.stack.map((s) => (
-              <span key={s}>{s}</span>
-            ))}
+          <div className="mt-auto flex items-end justify-between gap-4 pt-6">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-fg-3">
+              {p.stack.map((s) => (
+                <span key={s}>{s}</span>
+              ))}
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-accent transition-transform group-hover:translate-x-0.5">{UI[lang].more} →</span>
           </div>
         </div>
       </motion.article>
@@ -387,17 +439,143 @@ function ProjectCard({ p, i, big }: { p: ReturnType<typeof useApp>["t"]["work"][
 
 function Work() {
   const { t } = useApp();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = t.work.projects.find((x) => x.id === openId) ?? null;
   return (
     <section id="work" className="relative scroll-mt-24 py-24">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHead kicker={t.work.kicker} title={t.work.title} text={t.work.text} />
         <div className="grid gap-4 [perspective:1200px] md:grid-cols-2 lg:grid-cols-3">
           {t.work.projects.map((p, i) => (
-            <ProjectCard key={p.id} p={p} i={i} big={p.id === "tasu" || p.id === "tok"} />
+            <ProjectCard key={p.id} p={p} i={i} big={p.id === "tasu" || p.id === "tok"} onOpen={setOpenId} />
           ))}
         </div>
       </div>
+      <ProjectDialog p={open} onClose={() => setOpenId(null)} />
     </section>
+  );
+}
+
+function LinkButton({ l, primary }: { l: ProjectLink; primary?: boolean }) {
+  const { lang } = useApp();
+  const label = l.kind === "web" ? UI[lang].web : STORE_LABEL[l.kind];
+  return (
+    <a
+      href={l.href}
+      target="_blank"
+      rel="noreferrer"
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
+        primary ? "bg-fg text-bg" : "border border-line-strong hover:bg-card"
+      }`}
+    >
+      {l.kind === "web" ? <Globe size={16} /> : <Smartphone size={16} />}
+      {label}
+      <ArrowUpRight size={15} />
+    </a>
+  );
+}
+
+function ProjectDialog({ p, onClose }: { p: ProjectT | null; onClose: () => void }) {
+  const { lang } = useApp();
+  useEffect(() => {
+    if (!p) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [p, onClose]);
+  const ui = UI[lang];
+  return (
+    <AnimatePresence>
+      {p && (
+        <motion.div
+          key="overlay"
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={p.name}
+            onClick={(e) => e.stopPropagation()}
+            initial={{ y: 60, opacity: 0, scale: 0.97 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 40, opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.45, ease }}
+            className="relative max-h-[92svh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-line bg-bg-2 shadow-[0_40px_120px_-20px_rgba(0,0,0,.8)] sm:rounded-3xl"
+          >
+            <div className="relative flex h-44 items-end overflow-hidden p-6" style={{ background: `linear-gradient(135deg, ${VISUALS[p.id].from}, ${VISUALS[p.id].to})` }}>
+              <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:18px_18px]" />
+              <div className="relative flex items-center gap-4">
+                <div className="size-20 overflow-hidden rounded-[28%] shadow-[0_20px_40px_-10px_rgba(0,0,0,.6)] ring-1 ring-white/25" style={{ background: VISUALS[p.id].tile }}>
+                  <Image src={VISUALS[p.id].logo} alt="" className="size-full object-cover" sizes="80px" />
+                </div>
+                <div className="text-white">
+                  <h3 className="text-3xl font-semibold tracking-tight">{p.name}</h3>
+                  <p className="text-sm text-white/80">{p.tag}</p>
+                </div>
+              </div>
+              <button onClick={onClose} aria-label={ui.close} className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md transition-colors hover:bg-black/60">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-7 p-6 sm:p-8">
+              <p className="text-[16px] leading-relaxed text-fg-2">{p.desc}</p>
+              <div>
+                <div className="mb-2 text-xs font-semibold tracking-[0.14em] text-fg-3 uppercase">{ui.role}</div>
+                <p className="leading-relaxed">{DETAILS[lang][p.id]?.role}</p>
+              </div>
+              <div>
+                <div className="mb-3 text-xs font-semibold tracking-[0.14em] text-fg-3 uppercase">{ui.built}</div>
+                <ul className="space-y-2.5">
+                  {DETAILS[lang][p.id]?.features.map((f) => (
+                    <li key={f} className="flex gap-3 leading-relaxed text-fg-2">
+                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="mb-3 text-xs font-semibold tracking-[0.14em] text-fg-3 uppercase">{ui.results}</div>
+                <div className="flex flex-wrap gap-2">
+                  {p.metrics.map((m) => (
+                    <span key={m} className="rounded-lg border border-lime/30 bg-lime/10 px-3 py-1.5 text-sm font-semibold text-lime">
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-3 text-xs font-semibold tracking-[0.14em] text-fg-3 uppercase">{ui.stack}</div>
+                <div className="flex flex-wrap gap-2">
+                  {p.stack.map((x) => (
+                    <span key={x} className="rounded-lg border border-line bg-card px-3 py-1.5 font-mono text-xs text-fg-2">
+                      {x}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {DETAILS[lang][p.id]?.note && <p className="text-sm text-fg-3">{DETAILS[lang][p.id]?.note}</p>}
+              {(LINKS[p.id] ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-3 border-t border-line pt-6">
+                  {(LINKS[p.id] ?? []).map((l, k) => (
+                    <LinkButton key={l.href} l={l} primary={k === 0} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -520,6 +698,8 @@ function Contact() {
   const { t, lang } = useApp();
   const items = [
     { icon: Phone, label: t.contact.phone, value: CONTACT.phone, href: CONTACT.phoneHref },
+    { icon: MessageCircle, label: "WhatsApp", value: CONTACT.whatsapp, href: CONTACT.whatsappHref },
+    { icon: Send, label: "Telegram", value: CONTACT.telegram, href: CONTACT.telegramHref },
     { icon: Mail, label: t.contact.email, value: CONTACT.email, href: `mailto:${CONTACT.email}` },
     { icon: GithubIcon, label: t.contact.github, value: CONTACT.github, href: `https://${CONTACT.github}` },
   ];
@@ -532,7 +712,7 @@ function Contact() {
           <h2 className="text-[clamp(2.4rem,6vw,4.8rem)] leading-[1] font-semibold tracking-[-0.04em]">{t.contact.title}</h2>
           <p className="mt-5 text-lg text-fg-2">{t.contact.text}</p>
         </Reveal>
-        <div className="mx-auto mt-12 grid max-w-4xl gap-3 sm:grid-cols-3">
+        <div className="mx-auto mt-12 grid max-w-6xl gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {items.map(({ icon: Icon, label, value, href }, i) => (
             <Reveal key={label} delay={i * 0.06}>
               <a
